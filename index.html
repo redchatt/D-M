@@ -6,8 +6,10 @@
     <title>DİM — Qəbul Nəticələri Portalı</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Kartı şəkil kimi yükləmək üçün kitabxana -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col justify-between">
 
@@ -44,7 +46,7 @@
                     <input type="text" id="workNumber" required placeholder="Məsələn: 123456" 
                            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-center text-lg font-bold tracking-widest uppercase">
                 </div>
-                <button type="submit" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
+                <button type="submit" id="searchBtn" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-3 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <span>Nəticəni Göstər</span>
                 </button>
@@ -61,7 +63,6 @@
                     <span>Yenidən axtarış et</span>
                 </button>
 
-                <!-- Sosial Şəbəkə Kartı Düyməsi -->
                 <button onclick="openCardModal()" class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
                     <i class="fa-solid fa-share-nodes text-sm"></i>
                     <span>Sosial Kartı Yüklə (Story)</span>
@@ -111,11 +112,9 @@
 
     </main>
 
-    <!-- Modal: Sosial Şəbəkə üçün Şəkil Kartı -->
+    <!-- Modal: Sosial Şəbəkə Kartı -->
     <div id="cardModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full space-y-4 text-center">
-            
-            <!-- Şəkil kimi çıxarılacaq dizayn (Kart) -->
             <div id="downloadableCard" class="bg-gradient-to-br from-blue-950 via-slate-900 to-blue-900 border-2 border-amber-400/40 rounded-2xl p-6 text-white text-left relative overflow-hidden shadow-2xl">
                 <div class="flex justify-between items-center border-b border-white/10 pb-3 mb-4">
                     <div class="flex items-center space-x-2">
@@ -152,7 +151,6 @@
                 </div>
             </div>
 
-            <!-- Düymələr -->
             <div class="flex gap-2">
                 <button onclick="downloadCardImage()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition">
                     <i class="fa-solid fa-download mr-1"></i> Şəkil Kimi Yüklə
@@ -169,6 +167,13 @@
     </footer>
 
     <script>
+        // Firebase Konfiqurasiyası
+        const firebaseConfig = {
+            databaseURL: "https://k9-esports-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         let currentStudentData = null;
         let currentWorkNumber = "";
 
@@ -176,17 +181,33 @@
             e.preventDefault();
             const workNum = document.getElementById('workNumber').value.trim();
             const errorMsg = document.getElementById('errorMsg');
-            const data = JSON.parse(localStorage.getItem('dim_data')) || {};
+            const searchBtn = document.getElementById('searchBtn');
 
-            if(data[workNum]) {
-                errorMsg.classList.add('hidden');
-                currentStudentData = data[workNum];
-                currentWorkNumber = workNum;
-                renderResult(workNum, data[workNum]);
-            } else {
-                errorMsg.innerText = "Bu iş nömrəsi üzrə məlumat tapılmadı.";
+            if(!workNum) return;
+
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Axtarılır...`;
+            errorMsg.classList.add('hidden');
+
+            database.ref('dim_students/' + workNum).once('value').then(snapshot => {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i><span>Nəticəni Göstər</span>`;
+
+                if(snapshot.exists()) {
+                    const student = snapshot.val();
+                    currentStudentData = student;
+                    currentWorkNumber = workNum;
+                    renderResult(workNum, student);
+                } else {
+                    errorMsg.innerText = "Bu iş nömrəsi üzrə məlumat tapılmadı.";
+                    errorMsg.classList.remove('hidden');
+                }
+            }).catch(err => {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i><span>Nəticəni Göstər</span>`;
+                errorMsg.innerText = "Xəta baş verdi. Zəhmət olmasa internet bağlantınızı yoxlayın.";
                 errorMsg.classList.remove('hidden');
-            }
+            });
         }
 
         function renderResult(workNum, student) {
@@ -250,7 +271,6 @@
             });
         }
 
-        // Modal və Şəkil Yükləmə Funksiyaları
         function openCardModal() {
             if(!currentStudentData) return;
             const student = currentStudentData;
