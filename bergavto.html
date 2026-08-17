@@ -6,6 +6,9 @@
     <title>DİM Admin — İdarəetmə Paneli</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
 
@@ -132,15 +135,15 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">
-                    <button type="button" onclick="saveFullStudent()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-xl text-sm transition">
-                        <i class="fa-solid fa-floppy-disk mr-2"></i> Şagirdi Tam Yadda Saxla
+                    <button type="button" id="saveBtn" onclick="saveFullStudent()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-xl text-sm transition">
+                        <i class="fa-solid fa-floppy-disk mr-2"></i> Şagirdi Baza Üzrə Yadda Saxla
                     </button>
                 </div>
             </div>
 
             <!-- Bazada Olan Şagirdlər -->
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-                <h2 class="text-xl font-bold mb-4 text-slate-200">Bazada Olan Şagird Siyahısı</h2>
+                <h2 class="text-xl font-bold mb-4 text-slate-200">Bazada Olan Şagird Siyahısı (Canlı Firebase)</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-300">
                         <thead class="bg-slate-900 text-slate-400 uppercase text-xs">
@@ -163,6 +166,13 @@
     </div>
 
     <script>
+        // Firebase Konfiqurasiyası
+        const firebaseConfig = {
+            databaseURL: "https://k9-esports-default-rtdb.firebaseio.com"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         let currentChoices = [];
         let acceptedChoiceIndex = -1;
 
@@ -174,7 +184,7 @@
             if(code === "K9ESPORTS_211" && pass === "AA211_90") {
                 document.getElementById('loginModal').classList.add('hidden');
                 document.getElementById('adminDashboard').classList.remove('hidden');
-                loadAdminTable();
+                listenAdminTable();
             } else {
                 document.getElementById('loginError').classList.remove('hidden');
             }
@@ -210,7 +220,6 @@
 
             currentChoices.push({ uni, major, feeType, minScore });
 
-            // İxtisas xanalarını təmizləyirik (Şagird adı və balı SİLİNMİR)
             document.getElementById('adminMajor').value = '';
             document.getElementById('adminMinScore').value = '';
 
@@ -266,70 +275,81 @@
             const workNum = document.getElementById('adminWorkNum').value.trim();
             const name = document.getElementById('adminName').value.trim();
             const score = parseFloat(document.getElementById('adminScore').value);
+            const saveBtn = document.getElementById('saveBtn');
 
             if(!workNum || !name || isNaN(score)) {
                 alert("Zəhmət olmasa Şagirdin İş nömrəsini, Adını və Balını daxil edin.");
                 return;
             }
 
-            const data = JSON.parse(localStorage.getItem('dim_data')) || {};
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> Yadda saxlanılır...`;
 
-            data[workNum] = {
+            const studentData = {
                 name: name,
                 score: score,
                 acceptedIndex: acceptedChoiceIndex,
                 choices: currentChoices
             };
 
-            localStorage.setItem('dim_data', JSON.stringify(data));
+            database.ref('dim_students/' + workNum).set(studentData).then(() => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk mr-2"></i> Şagirdi Baza Üzrə Yadda Saxla`;
 
-            // Formu sıfırlayırıq
-            document.getElementById('adminWorkNum').value = '';
-            document.getElementById('adminName').value = '';
-            document.getElementById('adminScore').value = '';
-            currentChoices = [];
-            acceptedChoiceIndex = -1;
-            renderTempChoices();
-            loadAdminTable();
-            alert("Şagird məlumatları uğurla bazaya yazıldı!");
+                document.getElementById('adminWorkNum').value = '';
+                document.getElementById('adminName').value = '';
+                document.getElementById('adminScore').value = '';
+                currentChoices = [];
+                acceptedChoiceIndex = -1;
+                renderTempChoices();
+                alert("Şagird məlumatları Firebase bazasına UĞURLA yazıldı!");
+            }).catch(err => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk mr-2"></i> Şagirdi Baza Üzrə Yadda Saxla`;
+                alert("Xəta baş verdi: " + err.message);
+            });
         }
 
-        function loadAdminTable() {
-            const data = JSON.parse(localStorage.getItem('dim_data')) || {};
-            const tbody = document.getElementById('adminTableBody');
-            tbody.innerHTML = '';
+        function listenAdminTable() {
+            database.ref('dim_students').on('value', snapshot => {
+                const tbody = document.getElementById('adminTableBody');
+                tbody.innerHTML = '';
 
-            Object.keys(data).forEach(workNum => {
-                const s = data[workNum];
-                const accepted = (s.acceptedIndex >= 0 && s.choices[s.acceptedIndex]) ? s.choices[s.acceptedIndex] : null;
+                if(!snapshot.exists()) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">Bazada hələ heç bir şagird yoxdur.</td></tr>';
+                    return;
+                }
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="p-3 font-mono font-bold text-blue-400">${workNum}</td>
-                    <td class="p-3 font-semibold text-white">${s.name}</td>
-                    <td class="p-3 font-bold">${s.score}</td>
-                    <td class="p-3">${s.choices ? s.choices.length : 0} ixtisas</td>
-                    <td class="p-3">
-                        ${accepted 
-                            ? `${accepted.uni} - ${accepted.major} (${accepted.feeType})` 
-                            : '<span class="text-red-400">Qəbul olmayıb</span>'}
-                    </td>
-                    <td class="p-3 text-right">
-                        <button onclick="deleteStudent('${workNum}')" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 p-2 rounded transition">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+                const data = snapshot.val();
+                Object.keys(data).forEach(workNum => {
+                    const s = data[workNum];
+                    const accepted = (s.acceptedIndex >= 0 && s.choices && s.choices[s.acceptedIndex]) ? s.choices[s.acceptedIndex] : null;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="p-3 font-mono font-bold text-blue-400">${workNum}</td>
+                        <td class="p-3 font-semibold text-white">${s.name}</td>
+                        <td class="p-3 font-bold">${s.score}</td>
+                        <td class="p-3">${s.choices ? s.choices.length : 0} ixtisas</td>
+                        <td class="p-3">
+                            ${accepted 
+                                ? `${accepted.uni} - ${accepted.major} (${accepted.feeType})` 
+                                : '<span class="text-red-400">Qəbul olmayıb</span>'}
+                        </td>
+                        <td class="p-3 text-right">
+                            <button onclick="deleteStudent('${workNum}')" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 p-2 rounded transition">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             });
         }
 
         function deleteStudent(workNum) {
             if(confirm(`${workNum} nömrəli şagird məlumatını silmək istədiyinizdən əminsiniz?`)) {
-                const data = JSON.parse(localStorage.getItem('dim_data')) || {};
-                delete data[workNum];
-                localStorage.setItem('dim_data', JSON.stringify(data));
-                loadAdminTable();
+                database.ref('dim_students/' + workNum).remove();
             }
         }
     </script>
