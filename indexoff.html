@@ -32,7 +32,17 @@
     <!-- Main Content -->
     <main class="max-w-4xl mx-auto px-4 py-8 flex-grow w-full">
 
-        <!-- Search Box -->
+        <!-- Navigation Tabs -->
+        <div class="flex justify-center mb-6 gap-2">
+            <button id="tabSearchBtn" onclick="switchTab('search')" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-blue-900 text-white shadow-md transition">
+                <i class="fa-solid fa-magnifying-glass mr-2"></i>Nəticə Yoxla
+            </button>
+            <button id="tabApplyBtn" onclick="switchTab('apply')" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 hover:bg-slate-200 shadow-sm transition">
+                <i class="fa-solid fa-pen-to-square mr-2"></i>İxtisas Seçimi Et
+            </button>
+        </div>
+
+        <!-- Section 1: Search Box -->
         <div id="searchSection" class="bg-white rounded-2xl shadow-lg p-6 md:p-8 max-w-lg mx-auto text-center border border-slate-200">
             <div class="w-16 h-16 bg-blue-100 text-blue-900 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
                 <i class="fa-solid fa-id-card"></i>
@@ -54,9 +64,75 @@
             <p id="errorMsg" class="text-red-500 text-xs mt-3 hidden"></p>
         </div>
 
+        <!-- Section 2: Student Application Form -->
+        <div id="applySection" class="hidden bg-white rounded-2xl shadow-lg p-6 md:p-8 max-w-2xl mx-auto border border-slate-200 space-y-6">
+            <div class="text-center border-b pb-4">
+                <h2 class="text-2xl font-bold text-slate-800 mb-1">İxtisas Seçimi Müraciəti</h2>
+                <p class="text-slate-500 text-sm">Məlumatlarınızı daxil edib balınıza uyğun ixtisasları seçin.</p>
+            </div>
+
+            <!-- Step 1: Personal Info & Score -->
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Ad və Soyadınız</label>
+                    <input type="text" id="appFullName" placeholder="Məsələn: Əli Əliyev" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Topladığınız Bal (0 - 700)</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="appScore" step="0.1" min="0" max="700" placeholder="Məsələn: 578.5" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none text-sm font-bold text-blue-900">
+                        <button type="button" id="lockScoreBtn" onclick="confirmScore()" class="bg-blue-900 text-white text-xs px-4 py-2.5 rounded-xl font-bold hover:bg-blue-800 transition whitespace-nowrap">
+                            Təsdiqlə və İxtisas Seç
+                        </button>
+                    </div>
+                    <p id="scoreError" class="text-red-500 text-xs mt-1 hidden"></p>
+                </div>
+            </div>
+
+            <!-- Step 2: Major Selection Area -->
+            <div id="majorSelectionBox" class="hidden space-y-4 pt-4 border-t">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-list-check text-blue-900 mr-2"></i>İxtisas Seçimi (Maksimum 15)</h3>
+                    <span id="selectedCount" class="text-xs bg-blue-100 text-blue-900 px-3 py-1 rounded-full font-bold">0 / 15 Seçilib</span>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-slate-600">Balınıza Uyğun İxtisaslar:</label>
+                    <select id="availableMajorsSelect" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600 focus:outline-none text-sm">
+                        <option value="">-- İxtisas seçin --</option>
+                    </select>
+                    <button type="button" onclick="addSelectedMajor()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 rounded-xl text-xs transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Siyahıya Əlavə Et
+                    </button>
+                </div>
+
+                <!-- Selected Choices Table -->
+                <div class="border rounded-xl overflow-hidden mt-4">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-100 border-b">
+                            <tr>
+                                <th class="p-2 text-center">#</th>
+                                <th class="p-2">İxtisas və İxtisas Tipi</th>
+                                <th class="p-2 text-center">Forma</th>
+                                <th class="p-2 text-center">Keçid Balı</th>
+                                <th class="p-2 text-center">Sil</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userChoicesTable" class="divide-y">
+                            <tr><td colspan="5" class="p-3 text-center text-slate-400">Hələ heç bir ixtisas əlavə edilməyib.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button type="button" onclick="submitApplication()" id="submitAppBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2 mt-4">
+                    <i class="fa-solid fa-paper-plane"></i> Müraciəti Göndər
+                </button>
+                <p id="appSuccessMsg" class="text-emerald-600 font-bold text-center text-sm hidden"></p>
+            </div>
+        </div>
+
         <!-- Result Section -->
         <div id="resultSection" class="hidden space-y-6">
-            
             <div class="flex justify-between items-center">
                 <button onclick="resetSearch()" class="text-blue-900 hover:text-blue-700 font-medium text-sm flex items-center space-x-2">
                     <i class="fa-solid fa-arrow-left"></i>
@@ -88,7 +164,7 @@
             <!-- Choice Table -->
             <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                    <h4 class="font-bold text-slate-700"><i class="fa-solid fa-list-check text-blue-900 mr-2"></i>Seçilmiş İxtisasların Siyahısı</h4>
+                    <h4 class="font-bold text-slate-700"><i class="fa-solid fa-list-check text-blue-900 mr-2"></i>Seçılmış İxtisasların Siyahısı</h4>
                     <span id="choiceCountBadge" class="text-xs bg-slate-200 text-slate-600 px-2.5 py-1 rounded-full font-semibold">0/15 İxtisas</span>
                 </div>
                 <div class="overflow-x-auto">
@@ -107,7 +183,6 @@
                     </table>
                 </div>
             </div>
-
         </div>
 
     </main>
@@ -176,7 +251,35 @@
 
         let currentStudentData = null;
         let currentWorkNumber = "";
+        
+        let allDatabaseMajors = [];
+        let userSelectedChoices = [];
+        let lockedScore = null;
 
+        // Tab Switcher
+        function switchTab(tab) {
+            const searchSec = document.getElementById('searchSection');
+            const applySec = document.getElementById('applySection');
+            const resultSec = document.getElementById('resultSection');
+            const tabSearchBtn = document.getElementById('tabSearchBtn');
+            const tabApplyBtn = document.getElementById('tabApplyBtn');
+
+            resultSec.classList.add('hidden');
+
+            if(tab === 'search') {
+                searchSec.classList.remove('hidden');
+                applySec.classList.add('hidden');
+                tabSearchBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-blue-900 text-white shadow-md transition";
+                tabApplyBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 hover:bg-slate-200 shadow-sm transition";
+            } else {
+                searchSec.classList.add('hidden');
+                applySec.classList.remove('hidden');
+                tabApplyBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-blue-900 text-white shadow-md transition";
+                tabSearchBtn.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-slate-700 hover:bg-slate-200 shadow-sm transition";
+            }
+        }
+
+        // Search Result
         function searchResult(e) {
             e.preventDefault();
             const workNum = document.getElementById('workNumber').value.trim();
@@ -271,6 +374,171 @@
             });
         }
 
+        // --- APPLICATION LOGIC ---
+
+        function confirmScore() {
+            const scoreInput = document.getElementById('appScore');
+            const scoreError = document.getElementById('scoreError');
+            const scoreVal = parseFloat(scoreInput.value);
+
+            if(isNaN(scoreVal) || scoreVal < 0 || scoreVal > 700) {
+                scoreError.innerText = "Zəhmət olmasa 0 - 700 arasında düzgün bal daxil edin.";
+                scoreError.classList.remove('hidden');
+                return;
+            }
+
+            if(scoreVal === 0) {
+                scoreError.innerText = "0 bal toplayan abituriyentlər ixtisas seçiminə buraxılmır!";
+                scoreError.classList.remove('hidden');
+                return;
+            }
+
+            scoreError.classList.add('hidden');
+            lockedScore = scoreVal;
+            scoreInput.disabled = true;
+            document.getElementById('lockScoreBtn').disabled = true;
+            document.getElementById('lockScoreBtn').className = "bg-slate-400 text-white text-xs px-4 py-2.5 rounded-xl font-bold cursor-not-allowed";
+
+            loadEligibleMajors(lockedScore);
+        }
+
+        function loadEligibleMajors(userScore) {
+            database.ref('dim_all_majors').once('value').then(snapshot => {
+                const select = document.getElementById('availableMajorsSelect');
+                select.innerHTML = '<option value="">-- İxtisas seçin --</option>';
+                allDatabaseMajors = [];
+
+                if(snapshot.exists()) {
+                    const data = snapshot.val();
+                    Object.keys(data).forEach(key => {
+                        const m = data[key];
+                        // Filter: Balına uyğun olanlar (minScore <= userScore)
+                        if(parseFloat(m.minScore) <= userScore) {
+                            allDatabaseMajors.push({ id: key, ...m });
+                        }
+                    });
+
+                    if(allDatabaseMajors.length === 0) {
+                        select.innerHTML = '<option value="">Balınıza uyğun heç bir ixtisas tapılmadı</option>';
+                    } else {
+                        allDatabaseMajors.forEach((m, idx) => {
+                            const opt = document.createElement('option');
+                            opt.value = idx;
+                            const priceText = (m.feeType === 'Ödənişli' && m.price) ? ` - ${m.price} AZN` : '';
+                            opt.innerText = `${m.uni} — ${m.major} (${m.feeType}${priceText}) [${m.studyForm || 'Əyani'}] - Min: ${m.minScore} Bal`;
+                            select.appendChild(opt);
+                        });
+                    }
+                } else {
+                    select.innerHTML = '<option value="">Bazada ixtisas tapılmadı.</option>';
+                }
+
+                document.getElementById('majorSelectionBox').classList.remove('hidden');
+            });
+        }
+
+        function addSelectedMajor() {
+            if(userSelectedChoices.length >= 15) {
+                alert("Maksimum 15 ixtisas seçə bilərsiniz!");
+                return;
+            }
+
+            const select = document.getElementById('availableMajorsSelect');
+            const selectedIdx = select.value;
+
+            if(selectedIdx === "") return;
+
+            const chosen = allDatabaseMajors[selectedIdx];
+            
+            // Check duplicate
+            const exists = userSelectedChoices.some(item => item.uni === chosen.uni && item.major === chosen.major && item.feeType === chosen.feeType);
+            if(exists) {
+                alert("Bu ixtisası artıq siyahınıza əlavə etmisiniz!");
+                return;
+            }
+
+            userSelectedChoices.push(chosen);
+            renderUserChoicesTable();
+        }
+
+        function removeSelectedMajor(idx) {
+            userSelectedChoices.splice(idx, 1);
+            renderUserChoicesTable();
+        }
+
+        function renderUserChoicesTable() {
+            const tbody = document.getElementById('userChoicesTable');
+            document.getElementById('selectedCount').innerText = `${userSelectedChoices.length} / 15 Seçilib`;
+
+            if(userSelectedChoices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-center text-slate-400">Hələ heç bir ixtisas əlavə edilməyib.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            userSelectedChoices.forEach((m, idx) => {
+                const tr = document.createElement('tr');
+                const priceText = (m.feeType === 'Ödənişli' && m.price) ? ` (${m.price} AZN)` : '';
+                tr.innerHTML = `
+                    <td class="p-2 text-center font-bold text-slate-500">${idx + 1}</td>
+                    <td class="p-2">
+                        <div class="font-bold text-slate-800">${m.major} (${m.feeType}${priceText})</div>
+                        <div class="text-[11px] text-slate-500">${m.uni}</div>
+                    </td>
+                    <td class="p-2 text-center"><span class="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-semibold">${m.studyForm || 'Əyani'}</span></td>
+                    <td class="p-2 text-center font-bold text-slate-700">${m.minScore}</td>
+                    <td class="p-2 text-center">
+                        <button type="button" onclick="removeSelectedMajor(${idx})" class="text-red-500 hover:text-red-700 font-bold"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function submitApplication() {
+            const name = document.getElementById('appFullName').value.trim();
+            if(!name) {
+                alert("Zəhmət olmasa Ad və Soyadınızı daxil edin.");
+                return;
+            }
+
+            if(userSelectedChoices.length === 0) {
+                alert("Zəhmət olmasa ən azı 1 ixtisas seçin.");
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitAppBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Göndərilir...`;
+
+            const applicationData = {
+                name: name,
+                score: lockedScore,
+                choices: userSelectedChoices,
+                timestamp: Date.now(),
+                status: "Gözləmədə"
+            };
+
+            // Admin panelin oxuması üçün gələn müraciətlər qovluğuna yazılır
+            database.ref('dim_pending_applications').push(applicationData).then(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Müraciəti Göndər`;
+                
+                const msg = document.getElementById('appSuccessMsg');
+                msg.innerText = "Müraciətiniz uğurla admin panelə göndərildi! Qısa zamanda nəticəniz bəlli olacaq.";
+                msg.classList.remove('hidden');
+
+                setTimeout(() => {
+                    location.reload();
+                }, 3000);
+            }).catch(err => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Müraciəti Göndər`;
+                alert("Müraciət göndərilərkən xəta baş verdi.");
+            });
+        }
+
+        // Card Modal Logic
         function openCardModal() {
             if(!currentStudentData) return;
             const student = currentStudentData;
