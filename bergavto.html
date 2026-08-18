@@ -52,9 +52,14 @@
             
             <!-- Şagird və 15 İxtisas Formu -->
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-6">
-                <h2 class="text-xl font-bold text-blue-400 flex items-center">
-                    <i class="fa-solid fa-user-plus mr-2"></i> Şagird və İxtisaslar (Maksimum 15 ədəd)
-                </h2>
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-blue-400 flex items-center">
+                        <i class="fa-solid fa-user-plus mr-2"></i> Şagird və İxtisaslar (Maksimum 15 ədəd)
+                    </h2>
+                    <button type="button" onclick="resetForm()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-1.5 rounded transition text-slate-300">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Formu Sıfırla
+                    </button>
+                </div>
 
                 <!-- 1. Əsas Şagird Məlumatları -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-slate-700 pb-4">
@@ -227,7 +232,11 @@
         }
 
         function setAcceptedChoice(index) {
-            acceptedChoiceIndex = index;
+            if(acceptedChoiceIndex === index) {
+                acceptedChoiceIndex = -1; // Təkrar basıldıqda seçimi ləğv et
+            } else {
+                acceptedChoiceIndex = index;
+            }
             renderTempChoices();
         }
 
@@ -296,17 +305,42 @@
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk mr-2"></i> Şagirdi Baza Üzrə Yadda Saxla`;
 
-                document.getElementById('adminWorkNum').value = '';
-                document.getElementById('adminName').value = '';
-                document.getElementById('adminScore').value = '';
-                currentChoices = [];
-                acceptedChoiceIndex = -1;
-                renderTempChoices();
+                resetForm();
                 alert("Şagird məlumatları Firebase bazasına UĞURLA yazıldı!");
             }).catch(err => {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk mr-2"></i> Şagirdi Baza Üzrə Yadda Saxla`;
                 alert("Xəta baş verdi: " + err.message);
+            });
+        }
+
+        function resetForm() {
+            document.getElementById('adminWorkNum').value = '';
+            document.getElementById('adminName').value = '';
+            document.getElementById('adminScore').value = '';
+            document.getElementById('adminMajor').value = '';
+            document.getElementById('adminMinScore').value = '';
+            document.getElementById('adminWorkNum').disabled = false;
+            currentChoices = [];
+            acceptedChoiceIndex = -1;
+            renderTempChoices();
+        }
+
+        function editStudent(workNum) {
+            database.ref('dim_students/' + workNum).once('value').then(snapshot => {
+                if(!snapshot.exists()) return;
+                const s = snapshot.val();
+                
+                document.getElementById('adminWorkNum').value = workNum;
+                document.getElementById('adminWorkNum').disabled = true; // Redaktə edərkən iş nömrəsini kilidləyirik
+                document.getElementById('adminName').value = s.name || '';
+                document.getElementById('adminScore').value = s.score || '';
+                
+                currentChoices = s.choices || [];
+                acceptedChoiceIndex = (typeof s.acceptedIndex !== 'undefined') ? s.acceptedIndex : -1;
+                
+                renderTempChoices();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             });
         }
 
@@ -333,11 +367,14 @@
                         <td class="p-3">${s.choices ? s.choices.length : 0} ixtisas</td>
                         <td class="p-3">
                             ${accepted 
-                                ? `${accepted.uni} - ${accepted.major} (${accepted.feeType})` 
+                                ? `<span class="text-emerald-400 font-medium">${accepted.uni} - ${accepted.major} (${accepted.feeType})</span>` 
                                 : '<span class="text-red-400">Qəbul olmayıb</span>'}
                         </td>
-                        <td class="p-3 text-right">
-                            <button onclick="deleteStudent('${workNum}')" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 p-2 rounded transition">
+                        <td class="p-3 text-right space-x-1">
+                            <button onclick="editStudent('${workNum}')" title="Redaktə et" class="bg-blue-500/20 hover:bg-blue-500/40 text-blue-400 p-2 rounded transition">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="deleteStudent('${workNum}')" title="Sil" class="bg-red-500/20 hover:bg-red-500/40 text-red-400 p-2 rounded transition">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </td>
